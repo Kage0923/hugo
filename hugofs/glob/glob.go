@@ -11,13 +11,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package glob
 
 import (
+	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/gobwas/glob"
+	"github.com/gobwas/glob/syntax"
 )
 
 var (
@@ -45,4 +48,34 @@ func GetGlob(pattern string) (glob.Glob, error) {
 
 	return g, nil
 
+}
+
+func NormalizePath(p string) string {
+	return strings.Trim(filepath.ToSlash(strings.ToLower(p)), "/.")
+}
+
+// ResolveRootDir takes a normalized path on the form "assets/**.json" and
+// determines any root dir, i.e. any start path without any wildcards.
+func ResolveRootDir(p string) string {
+	parts := strings.Split(path.Dir(p), "/")
+	var roots []string
+	for _, part := range parts {
+		isSpecial := false
+		for i := 0; i < len(part); i++ {
+			if syntax.Special(part[i]) {
+				isSpecial = true
+				break
+			}
+		}
+		if isSpecial {
+			break
+		}
+		roots = append(roots, part)
+	}
+
+	if len(roots) == 0 {
+		return ""
+	}
+
+	return strings.Join(roots, "/")
 }
