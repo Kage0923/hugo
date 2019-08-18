@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package resources
+package images
 
 import (
 	"image"
@@ -22,12 +22,17 @@ import (
 
 const (
 	// Do not change.
-	smartCropIdentifier = "smart"
+	// TODO(bep) image unexport
+	SmartCropIdentifier = "smart"
 
 	// This is just a increment, starting on 1. If Smart Crop improves its cropping, we
 	// need a way to trigger a re-generation of the crops in the wild, so increment this.
 	smartCropVersionNumber = 1
 )
+
+func newSmartCropAnalyzer(filter imaging.ResampleFilter) smartcrop.Analyzer {
+	return smartcrop.NewAnalyzer(imagingResizer{filter: filter})
+}
 
 // Needed by smartcrop
 type imagingResizer struct {
@@ -38,12 +43,7 @@ func (r imagingResizer) Resize(img image.Image, width, height uint) image.Image 
 	return imaging.Resize(img, int(width), int(height), r.filter)
 }
 
-func newSmartCropAnalyzer(filter imaging.ResampleFilter) smartcrop.Analyzer {
-	return smartcrop.NewAnalyzer(imagingResizer{filter: filter})
-}
-
 func smartCrop(img image.Image, width, height int, anchor imaging.Anchor, filter imaging.ResampleFilter) (*image.NRGBA, error) {
-
 	if width <= 0 || height <= 0 {
 		return &image.NRGBA{}, nil
 	}
@@ -63,7 +63,6 @@ func smartCrop(img image.Image, width, height int, anchor imaging.Anchor, filter
 	smart := newSmartCropAnalyzer(filter)
 
 	rect, err := smart.FindBestCrop(img, width, height)
-
 	if err != nil {
 		return nil, err
 	}
@@ -73,5 +72,4 @@ func smartCrop(img image.Image, width, height int, anchor imaging.Anchor, filter
 	cropped := imaging.Crop(img, b)
 
 	return imaging.Resize(cropped, width, height, filter), nil
-
 }
