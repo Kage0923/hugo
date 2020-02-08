@@ -1,4 +1,4 @@
-// Copyright 2018 The Hugo Authors. All rights reserved.
+// Copyright 2020 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@
 package scss
 
 import (
-	"github.com/gohugoio/hugo/common/herrors"
 	"github.com/gohugoio/hugo/resources"
+	"github.com/gohugoio/hugo/resources/resource"
 )
+
+func (c *Client) ToCSS(res resources.ResourceTransformer, opts Options) (resource.Resource, error) {
+	return res.Transform(resources.NewFeatureNotAvailableTransformer(transformationName, opts))
+}
 
 // Used in tests.
 func Supports() bool {
 	return false
-}
-
-func (t *toCSSTransformation) Transform(ctx *resources.ResourceTransformationCtx) error {
-	return herrors.ErrFeatureNotAvailable
 }
