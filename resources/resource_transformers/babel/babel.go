@@ -1,4 +1,4 @@
-// Copyright 2018 The Hugo Authors. All rights reserved.
+// Copyright 2020 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,14 +11,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package transpilejs
+package babel
 
 import (
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 
+	"github.com/gohugoio/hugo/common/hugo"
 	"github.com/gohugoio/hugo/resources/internal"
 
 	"github.com/mitchellh/mapstructure"
@@ -32,14 +34,13 @@ import (
 
 // Options from https://babeljs.io/docs/en/options
 type Options struct {
-	Config     string //Custom path to config file
-	Plugins    string //Comma seperated string of plugins
-	Presets    string //Comma seperated string of presets
-	Minified   bool   //true/false
-	NoComments bool   //true/false
-	Compact    string //true/false/auto
-	Verbose    bool   //true/false
-	NoBabelrc  bool   //true/false
+	Config string // Custom path to config file
+
+	Minified   bool
+	NoComments bool
+	Compact    *bool
+	Verbose    bool
+	NoBabelrc  bool
 }
 
 func DecodeOptions(m map[string]interface{}) (opts Options, err error) {
@@ -52,20 +53,14 @@ func DecodeOptions(m map[string]interface{}) (opts Options, err error) {
 func (opts Options) toArgs() []string {
 	var args []string
 
-	if opts.Plugins != "" {
-		args = append(args, "--plugins="+opts.Plugins)
-	}
-	if opts.Presets != "" {
-		args = append(args, "--presets="+opts.Presets)
-	}
 	if opts.Minified {
 		args = append(args, "--minified")
 	}
 	if opts.NoComments {
 		args = append(args, "--no-comments")
 	}
-	if opts.Compact != "" {
-		args = append(args, "--compact="+opts.Compact)
+	if opts.Compact != nil {
+		args = append(args, "--compact="+strconv.FormatBool(*opts.Compact))
 	}
 	if opts.Verbose {
 		args = append(args, "--verbose")
@@ -103,7 +98,6 @@ func (t *babelTransformation) Key() internal.ResourceTransformationKey {
 // npm install -g @babel/preset-env
 // Instead of installing globally, you can also install everything as a dev-dependency (--save-dev instead of -g)
 func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx) error {
-
 	const localBabelPath = "node_modules/@babel/cli/bin/"
 	const binaryName = "babel.js"
 
@@ -164,6 +158,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	cmd.Stdout = ctx.To
 	cmd.Stderr = os.Stderr
+	cmd.Env = hugo.GetExecEnviron(t.rs.Cfg)
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
